@@ -8,8 +8,12 @@ on:
 #    types: published
 #  schedule:
 #    - cron: 0 8 * * 5
-#  watch:
-#    types: [started]
+  watch:
+    types: [started]
+env:
+  REPO_URL: https://github.com/coolsnowwolf/lede
+  SSH_ACTIONS: true
+  TZ: Asia/Shanghai
 
 jobs:
   build:
@@ -31,6 +35,7 @@ jobs:
         sudo -E apt-get update -y
         sudo -E apt-get full-upgrade -y
         sudo -E apt-get install -y build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-8 gcc++-8 gcc-8-multilib g++-8-multilib p7zip p7zip-full msmtp libssl-dev texinfo libreadline-dev libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint ccache curl wget vim nano python python3 python-pip python3-pip python-ply python3-ply haveged lrzsz device-tree-compiler scons antlr3 gperf ecj fastjar re2c
+        sudo timedatectl set-timezone "$TZ"
         sudo -E ln -sf /usr/bin/gcc-8 /usr/bin/gcc
         sudo -E ln -sf /usr/bin/g++-8 /usr/bin/g++
         sudo -E ln -sf /usr/bin/gcc-ar-8 /usr/bin/gcc-ar
@@ -42,7 +47,7 @@ jobs:
     - name: Clone source
       run: |
         cd /home/runner
-        git clone https://github.com/project-openwrt/openwrt.git
+        git clone $REPO_URL
         sudo chown -R runner:runner openwrt
         cd /home/runner/openwrt
         ./scripts/feeds update -a 
@@ -52,8 +57,9 @@ jobs:
         /bin/bash /home/runner/work/build-openwrt/build-openwrt/before_build.sh
         cp -fpR /home/runner/work/build-openwrt/build-openwrt/. /home/runner/openwrt/
 
-#    - name: SSH connection to Actions
-#      uses: csexton/debugger-action@master
+    - name: SSH connection to Actions
+      uses: epoen/debugger-action@master
+      if: env.SSH_ACTIONS == 'true' || contains(github.event.action, 'ssh')
 
     - name: Start Build
       run: | 
@@ -61,8 +67,9 @@ jobs:
         let make_process=$(nproc)+1
         mv .config .config_default
         rm -f .config.old
-        config_names="$(ls .config*)"
+        config_names="$(ls .config)"
         for i in $config_names;do mv -f $i .config; make defconfig; make -j${make_process}; rm -rf build_dir/target* build_dir/toolchain* staging_dir/target* staging_dir/toolchain*; done
+    
     - name: After Build
       run: |
         /bin/bash /home/runner/openwrt/after_build.sh

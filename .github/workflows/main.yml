@@ -1,9 +1,9 @@
 name: Build-OpenWrt
 
 on:
-  push:
-    branches: 
-      - master
+#   push:
+#     branches: 
+#       - master
 #  release:
 #    types: published
 #  schedule:
@@ -11,7 +11,7 @@ on:
   watch:
     types: [started]
 env:
-  REPO_URL: https://github.com/coolsnowwolf/lede
+  REPO_URL: https://github.com/coolsnowwolf/lede.git
   SSH_ACTIONS: true
   TZ: Asia/Shanghai
 
@@ -58,7 +58,7 @@ jobs:
         cp -fpR /home/runner/work/build-openwrt/build-openwrt/. /home/runner/openwrt/
 
     - name: SSH connection to Actions
-      uses: epoen/debugger-action@master
+      uses: P3TERX/debugger-action@master
       if: env.SSH_ACTIONS == 'true' || contains(github.event.action, 'ssh')
 
     - name: Start Build

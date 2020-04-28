@@ -11,9 +11,9 @@ on:
   watch:
     types: [started]
 env:
-  REPO_URL: https://github.com/coolsnowwolf/lede.git
+  REPO_URL: https://github.com/epoen/lede
   REPO_BRANCH: master
-  SSH_ACTIONS: true
+  SSH_ACTIONS: false
   TZ: Asia/Shanghai
 
 jobs:
@@ -66,10 +66,10 @@ jobs:
       run: | 
         cd /home/runner/openwrt
         let make_process=$(nproc)+1
-        mv .config .config_default
-        rm -f .config.old
-        config_names="$(ls .config)"
-        for i in $config_names;do mv -f $i .config; make defconfig; make -j${make_process}; rm -rf build_dir/target* build_dir/toolchain* staging_dir/target* staging_dir/toolchain*; done
+        rm -f .config
+        mv k3.config .config
+        make defconfig
+        make -j${make_process}
     
     - name: After Build
       run: |

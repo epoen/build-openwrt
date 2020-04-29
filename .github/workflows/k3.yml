@@ -14,6 +14,8 @@ env:
   REPO_URL: https://github.com/epoen/lede
   REPO_BRANCH: master
   SSH_ACTIONS: false
+  UPLOAD_COWTRANSFER: true
+  UPLOAD_WETRANSFER: false
   TZ: Asia/Shanghai
 
 jobs:
@@ -58,10 +60,6 @@ jobs:
         /bin/bash /home/runner/work/build-openwrt/build-openwrt/before_build.sh
         cp -fpR /home/runner/work/build-openwrt/build-openwrt/. /home/runner/openwrt/
 
-    - name: SSH connection to Actions
-      uses: P3TERX/debugger-action@master
-      if: env.SSH_ACTIONS == 'true' || contains(github.event.action, 'ssh')
-
     - name: Start Build
       run: | 
         cd /home/runner/openwrt
@@ -87,3 +85,17 @@ jobs:
       with:
         name: Firmwares
         path: /home/runner/openwrt/bin/targets/
+
+    - name: Upload firmware to cowtransfer
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer cow --block 2621440 -s -p 64 --no-progress /home/runner/openwrt/bin/targets/ 2>&1 | tee cowtransfer.log
+        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
+        
+    - name: Upload firmware to WeTransfer
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_WETRANSFER == 'true' && !cancelled()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer wet -s -p 16 --no-progress /home/runner/openwrt/bin/targets/ 2>&1 | tee wetransfer.log
+        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"

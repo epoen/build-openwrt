@@ -14,6 +14,8 @@ env:
   REPO_URL: https://github.com/epoen/lede
   REPO_BRANCH: master
   SSH_ACTIONS: false
+  UPLOAD_PACKAGE: true
+  UPLOAD_FIRMWARE: false
   UPLOAD_COWTRANSFER: true
   UPLOAD_WETRANSFER: false
   TZ: Asia/Shanghai
@@ -61,6 +63,7 @@ jobs:
         cp -fpR /home/runner/work/build-openwrt/build-openwrt/. /home/runner/openwrt/
 
     - name: Start Build
+      id: compile
       run: | 
         cd /home/runner/openwrt
         let make_process=$(nproc)+1
@@ -76,18 +79,20 @@ jobs:
       run: |
         /bin/bash /home/runner/openwrt/after_build.sh
     - name: Upload Packages
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_PACKAGE == 'true'
       uses: actions/upload-artifact@master
       with:
         name: Packages
         path: /home/runner/openwrt/bin/packages/
     - name: Upload Firmwares
       uses: actions/upload-artifact@master
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       with:
         name: Firmwares
         path: /home/runner/openwrt/bin/targets/
 
     - name: Upload firmware to cowtransfer
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
       run: |
         curl -fsSL git.io/file-transfer | sh
         ./transfer cow --block 2621440 -s -p 64 --no-progress /home/runner/openwrt/bin/targets/ 2>&1 | tee cowtransfer.log
